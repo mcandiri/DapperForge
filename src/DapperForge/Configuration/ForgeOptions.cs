@@ -44,9 +44,18 @@ public class ForgeOptions
 
     /// <summary>
     /// Gets or sets a value indicating whether SP existence should be validated on startup.
-    /// Recommended for development/staging environments only.
+    /// When enabled, DapperForge queries the database catalog to verify that all expected
+    /// stored procedures exist. Recommended for development/staging environments only.
     /// </summary>
     public bool ValidateSpOnStartup { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the application should throw an exception
+    /// if any expected stored procedures are missing during startup validation.
+    /// Only takes effect when <see cref="ValidateSpOnStartup"/> is also <c>true</c>.
+    /// Recommended for CI/staging environments to fail fast on deployment issues.
+    /// </summary>
+    public bool FailOnMissingSp { get; set; }
 
     /// <summary>
     /// Gets or sets the custom entity name resolver function.

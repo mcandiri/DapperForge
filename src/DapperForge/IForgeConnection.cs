@@ -7,6 +7,11 @@ namespace DapperForge;
 /// <summary>
 /// The main entry point for DapperForge stored procedure operations.
 /// Provides convention-based SP execution, direct SP calls, and transaction support.
+/// <para>
+/// <b>Thread safety:</b> Implementations of this interface are NOT thread-safe.
+/// Each instance wraps a single <see cref="System.Data.IDbConnection"/> and must not be
+/// shared across concurrent operations (e.g., <c>Task.WhenAll</c>). Register as Scoped in DI.
+/// </para>
 /// </summary>
 public interface IForgeConnection : IAsyncDisposable, IDisposable
 {

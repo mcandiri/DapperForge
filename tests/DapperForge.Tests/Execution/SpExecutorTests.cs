@@ -14,8 +14,9 @@ public class SpExecutorTests
     public void Constructor_NullConnection_ShouldThrow()
     {
         var mockDiagnostics = new Mock<IQueryDiagnostics>();
+        var mockCommandBuilder = new Mock<ISpCommandBuilder>();
 
-        var act = () => new SpExecutor(null!, mockDiagnostics.Object);
+        var act = () => new SpExecutor(null!, mockDiagnostics.Object, mockCommandBuilder.Object);
 
         act.Should().Throw<ArgumentNullException>().WithParameterName("connection");
     }
@@ -24,10 +25,22 @@ public class SpExecutorTests
     public void Constructor_NullDiagnostics_ShouldThrow()
     {
         var mockConnection = new Mock<IDbConnection>();
+        var mockCommandBuilder = new Mock<ISpCommandBuilder>();
 
-        var act = () => new SpExecutor(mockConnection.Object, null!);
+        var act = () => new SpExecutor(mockConnection.Object, null!, mockCommandBuilder.Object);
 
         act.Should().Throw<ArgumentNullException>().WithParameterName("diagnostics");
+    }
+
+    [Fact]
+    public void Constructor_NullCommandBuilder_ShouldThrow()
+    {
+        var mockConnection = new Mock<IDbConnection>();
+        var mockDiagnostics = new Mock<IQueryDiagnostics>();
+
+        var act = () => new SpExecutor(mockConnection.Object, mockDiagnostics.Object, null!);
+
+        act.Should().Throw<ArgumentNullException>().WithParameterName("commandBuilder");
     }
 
     [Fact]

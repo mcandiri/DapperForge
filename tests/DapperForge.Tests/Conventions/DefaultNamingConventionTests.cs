@@ -94,6 +94,39 @@ public class DefaultNamingConventionTests
     }
 
     [Fact]
+    public void GenericAndTypeOverloads_ShouldReturnIdenticalResults()
+    {
+        var convention = new DefaultNamingConvention();
+
+        convention.ResolveSelect<Student>().Should().Be(convention.ResolveSelect(typeof(Student)));
+        convention.ResolveUpsert<Student>().Should().Be(convention.ResolveUpsert(typeof(Student)));
+        convention.ResolveDelete<Student>().Should().Be(convention.ResolveDelete(typeof(Student)));
+    }
+
+    [Fact]
+    public void GenericAndTypeOverloads_WithCustomOptions_ShouldReturnIdenticalResults()
+    {
+        var options = new ForgeOptions();
+        options.MapEntity<Student>("Ogrenciler");
+        var convention = new DefaultNamingConvention("sel", "up", "del", "dbo", "_", options);
+
+        convention.ResolveSelect<Student>().Should().Be(convention.ResolveSelect(typeof(Student)));
+        convention.ResolveUpsert<Student>().Should().Be(convention.ResolveUpsert(typeof(Student)));
+        convention.ResolveDelete<Student>().Should().Be(convention.ResolveDelete(typeof(Student)));
+    }
+
+    [Fact]
+    public void GenericAndTypeOverloads_WithEntityNameResolver_ShouldReturnIdenticalResults()
+    {
+        var options = new ForgeOptions { EntityNameResolver = t => t.Name.ToLowerInvariant() };
+        var convention = new DefaultNamingConvention("Get", "Save", "Remove", "", "_", options);
+
+        convention.ResolveSelect<Order>().Should().Be(convention.ResolveSelect(typeof(Order)));
+        convention.ResolveUpsert<Order>().Should().Be(convention.ResolveUpsert(typeof(Order)));
+        convention.ResolveDelete<Order>().Should().Be(convention.ResolveDelete(typeof(Order)));
+    }
+
+    [Fact]
     public void NullSelectPrefix_ShouldThrow()
     {
         var act = () => new DefaultNamingConvention(null!, "Save", "Remove", "", "_", null);

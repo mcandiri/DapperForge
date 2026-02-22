@@ -275,6 +275,25 @@ options.Provider = DatabaseProvider.PostgreSQL;   // SELECT * FROM sp_name(@para
 
 ---
 
+## Performance
+
+DapperForge adds near-zero overhead on top of raw Dapper. Benchmarked with [BenchmarkDotNet](https://github.com/dotnet/BenchmarkDotNet) on SQLite in-memory to isolate framework cost from network I/O:
+
+| Operation | Raw Dapper | DapperForge | Overhead | Memory |
+|---|---|---|---|---|
+| **Query** (80 rows) | 58.0 us | 60.1 us | +3.6% | 0 extra bytes |
+| **Single row** | 4.54 us | 4.53 us | ~0% | 0 extra bytes |
+| **Scalar** | 1.94 us | 1.95 us | ~0% | 0 extra bytes |
+
+Zero additional memory allocations across all operations. The convention engine resolves SP names at negligible cost.
+
+```bash
+# Run benchmarks yourself
+dotnet run -c Release --project benchmarks/DapperForge.Benchmarks
+```
+
+---
+
 ## Born From Production
 
 DapperForge was extracted from the data access layer of an enterprise education platform serving **1,900+ daily users** across **4+ years** of continuous production use. Every API was shaped by real-world needs — not hypothetical use cases.
@@ -301,7 +320,7 @@ src/DapperForge/
 - [ ] **Retry policies** — configurable retry with Polly integration
 - [ ] **Connection-per-call mode** — option to create fresh connections instead of scoped
 - [ ] **SP result caching** — optional in-memory cache with TTL per SP
-- [ ] **GitHub Actions CI** — automated build, test, and NuGet publish pipeline
+- [x] **GitHub Actions CI** — automated build, test, and NuGet publish pipeline
 - [ ] **Source generator** — compile-time SP name validation
 
 Have an idea? [Open an issue](../../issues).

@@ -1,0 +1,45 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{4B3B3EEF-9A97-4943-AB83-90F8D31D3D4C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DapperForge", "src\DapperForge\DapperForge.csproj", "{AAA5D90C-E52A-4A9D-BAF1-C3E62F503AE6}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{7B09B0F6-0358-4FB9-B824-FC7F9BAED922}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DapperForge.Tests", "tests\DapperForge.Tests\DapperForge.Tests.csproj", "{F5BACE85-8582-42CF-82D9-840881346C66}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{81C35794-54CE-4C5D-B88D-E5CBB952DD97}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleApi", "samples\SampleApi\SampleApi.csproj", "{5DE2830E-E5A6-4E2A-8129-805E042A095C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{AAA5D90C-E52A-4A9D-BAF1-C3E62F503AE6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AAA5D90C-E52A-4A9D-BAF1-C3E62F503AE6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AAA5D90C-E52A-4A9D-BAF1-C3E62F503AE6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AAA5D90C-E52A-4A9D-BAF1-C3E62F503AE6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F5BACE85-8582-42CF-82D9-840881346C66}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F5BACE85-8582-42CF-82D9-840881346C66}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F5BACE85-8582-42CF-82D9-840881346C66}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F5BACE85-8582-42CF-82D9-840881346C66}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5DE2830E-E5A6-4E2A-8129-805E042A095C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5DE2830E-E5A6-4E2A-8129-805E042A095C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5DE2830E-E5A6-4E2A-8129-805E042A095C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5DE2830E-E5A6-4E2A-8129-805E042A095C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{AAA5D90C-E52A-4A9D-BAF1-C3E62F503AE6} = {4B3B3EEF-9A97-4943-AB83-90F8D31D3D4C}
+		{F5BACE85-8582-42CF-82D9-840881346C66} = {7B09B0F6-0358-4FB9-B824-FC7F9BAED922}
+		{5DE2830E-E5A6-4E2A-8129-805E042A095C} = {81C35794-54CE-4C5D-B88D-E5CBB952DD97}
+	EndGlobalSection
+EndGlobal

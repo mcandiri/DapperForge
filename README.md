@@ -9,7 +9,7 @@ Your team's SP naming convention shouldn't require boilerplate.
 [![NuGet](https://img.shields.io/nuget/v/DapperForge.svg?style=flat-square)](https://www.nuget.org/packages/DapperForge)
 [![.NET 8](https://img.shields.io/badge/.NET-8.0-512BD4?style=flat-square)](https://dotnet.microsoft.com)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
-[![Build](https://img.shields.io/badge/build-passing-brightgreen?style=flat-square)]()
+[![Build & Test](https://github.com/mcandiri/DapperForge/actions/workflows/build.yml/badge.svg)](https://github.com/mcandiri/DapperForge/actions/workflows/build.yml)
 
 </div>
 

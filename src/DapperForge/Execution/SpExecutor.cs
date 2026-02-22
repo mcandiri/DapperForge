@@ -7,21 +7,25 @@ namespace DapperForge.Execution;
 
 /// <summary>
 /// Default implementation of <see cref="ISpExecutor"/> using Dapper.
+/// Delegates command building to <see cref="ISpCommandBuilder"/> for database-specific syntax.
 /// </summary>
 public class SpExecutor : ISpExecutor
 {
     private readonly IDbConnection _connection;
     private readonly IQueryDiagnostics _diagnostics;
+    private readonly ISpCommandBuilder _commandBuilder;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SpExecutor"/> class.
     /// </summary>
     /// <param name="connection">The database connection.</param>
     /// <param name="diagnostics">The query diagnostics logger.</param>
-    public SpExecutor(IDbConnection connection, IQueryDiagnostics diagnostics)
+    /// <param name="commandBuilder">The database-specific command builder.</param>
+    public SpExecutor(IDbConnection connection, IQueryDiagnostics diagnostics, ISpCommandBuilder commandBuilder)
     {
         _connection = connection ?? throw new ArgumentNullException(nameof(connection));
         _diagnostics = diagnostics ?? throw new ArgumentNullException(nameof(diagnostics));
+        _commandBuilder = commandBuilder ?? throw new ArgumentNullException(nameof(commandBuilder));
     }
 
     /// <inheritdoc />
@@ -31,7 +35,7 @@ public class SpExecutor : ISpExecutor
         var sw = Stopwatch.StartNew();
         try
         {
-            var command = CreateCommand(spName, parameters, transaction, cancellationToken);
+            var command = _commandBuilder.BuildCommand(spName, parameters, transaction, cancellationToken);
             var result = (await _connection.QueryAsync<T>(command)).AsList();
             sw.Stop();
 
@@ -61,7 +65,7 @@ public class SpExecutor : ISpExecutor
         var sw = Stopwatch.StartNew();
         try
         {
-            var command = CreateCommand(spName, parameters, transaction, cancellationToken);
+            var command = _commandBuilder.BuildCommand(spName, parameters, transaction, cancellationToken);
             var result = await _connection.QueryFirstOrDefaultAsync<T>(command);
             sw.Stop();
 
@@ -91,7 +95,7 @@ public class SpExecutor : ISpExecutor
         var sw = Stopwatch.StartNew();
         try
         {
-            var command = CreateCommand(spName, parameters, transaction, cancellationToken);
+            var command = _commandBuilder.BuildCommand(spName, parameters, transaction, cancellationToken);
             var result = await _connection.ExecuteScalarAsync<T>(command);
             sw.Stop();
 
@@ -121,7 +125,7 @@ public class SpExecutor : ISpExecutor
         var sw = Stopwatch.StartNew();
         try
         {
-            var command = CreateCommand(spName, parameters, transaction, cancellationToken);
+            var command = _commandBuilder.BuildCommand(spName, parameters, transaction, cancellationToken);
             var result = await _connection.ExecuteAsync(command);
             sw.Stop();
 
@@ -153,7 +157,7 @@ public class SpExecutor : ISpExecutor
         var sw = Stopwatch.StartNew();
         try
         {
-            var command = CreateCommand(spName, parameters, transaction, cancellationToken);
+            var command = _commandBuilder.BuildCommand(spName, parameters, transaction, cancellationToken);
             using var multi = await _connection.QueryMultipleAsync(command);
             var result1 = (await multi.ReadAsync<T1>()).AsList();
             var result2 = (await multi.ReadAsync<T2>()).AsList();
@@ -188,7 +192,7 @@ public class SpExecutor : ISpExecutor
         var sw = Stopwatch.StartNew();
         try
         {
-            var command = CreateCommand(spName, parameters, transaction, cancellationToken);
+            var command = _commandBuilder.BuildCommand(spName, parameters, transaction, cancellationToken);
             using var multi = await _connection.QueryMultipleAsync(command);
             var result1 = (await multi.ReadAsync<T1>()).AsList();
             var result2 = (await multi.ReadAsync<T2>()).AsList();
@@ -233,8 +237,7 @@ public class SpExecutor : ISpExecutor
                 dynamicParams.Add(name, dbType: dbType, direction: ParameterDirection.Output);
             }
 
-            var command = new CommandDefinition(spName, dynamicParams, transaction,
-                commandType: CommandType.StoredProcedure, cancellationToken: cancellationToken);
+            var command = _commandBuilder.BuildCommand(spName, dynamicParams, transaction, cancellationToken);
             var rowsAffected = await _connection.ExecuteAsync(command);
             sw.Stop();
 
@@ -265,12 +268,5 @@ public class SpExecutor : ISpExecutor
             });
             throw;
         }
-    }
-
-    private static CommandDefinition CreateCommand(string spName, object? parameters,
-        IDbTransaction? transaction, CancellationToken cancellationToken)
-    {
-        return new CommandDefinition(spName, parameters, transaction,
-            commandType: CommandType.StoredProcedure, cancellationToken: cancellationToken);
     }
 }

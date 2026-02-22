@@ -212,12 +212,15 @@ builder.Services.AddDapperForge(options =>
 
 ## SP Validation
 
-Catch missing stored procedures at startup, not in production:
+Catch missing stored procedures at startup, not in production. DapperForge queries the database catalog (`sys.objects` for SQL Server, `information_schema.routines` for PostgreSQL) to verify existence:
 
 ```csharp
 builder.Services.AddDapperForge(options =>
 {
     options.ValidateSpOnStartup = true;
+
+    // Fail fast in CI/staging — throw if any SP is missing
+    options.FailOnMissingSp = true;
 
     options.RegisterEntity<Student>();
     options.RegisterEntity<Teacher>();
@@ -229,19 +232,24 @@ builder.Services.AddDapperForge(options =>
 ```
 
 ```
-[DapperForge] Expected SP: Get_Students (for entity 'Student')
-[DapperForge] Expected SP: Save_Students (for entity 'Student')
-[DapperForge] Expected SP: Remove_Students (for entity 'Student')
+[DapperForge] SP Validation: Checking 3 registered entities...
+[DapperForge] SP Validated: Get_Students (for entity 'Student')
+[DapperForge] SP Validated: Save_Students (for entity 'Student')
+[DapperForge] SP Missing: Remove_Students (for entity 'Student')
 ```
 
 ---
 
 ## Multi-Database
 
+DapperForge uses a provider-specific `ISpCommandBuilder` to generate the correct syntax for each database:
+
 ```csharp
-options.Provider = DatabaseProvider.SqlServer;   // EXEC sp_name @param
-options.Provider = DatabaseProvider.PostgreSQL;   // SELECT * FROM sp_name(@param)
+options.Provider = DatabaseProvider.SqlServer;   // CommandType.StoredProcedure → EXEC sp_name @param
+options.Provider = DatabaseProvider.PostgreSQL;   // CommandType.Text → SELECT * FROM sp_name(@param)
 ```
+
+SQL Server uses ADO.NET's native `CommandType.StoredProcedure`. PostgreSQL generates `SELECT * FROM function_name(@p1, @p2)` text commands, since Npgsql does not support `CommandType.StoredProcedure` reliably.
 
 ---
 
@@ -257,7 +265,49 @@ options.Provider = DatabaseProvider.PostgreSQL;   // SELECT * FROM sp_name(@para
 | `EnableDiagnostics` | `bool` | `false` | Enable query logging |
 | `SlowQueryThreshold` | `TimeSpan` | `2s` | Slow query warning threshold |
 | `OnQueryExecuted` | `Action<QueryEvent>` | `null` | Post-execution callback |
-| `ValidateSpOnStartup` | `bool` | `false` | Log expected SPs on startup |
+| `ValidateSpOnStartup` | `bool` | `false` | Validate SPs against DB on startup |
+| `FailOnMissingSp` | `bool` | `false` | Throw on missing SPs (requires ValidateSpOnStartup) |
+
+---
+
+## Entity Name Resolution
+
+By default, DapperForge resolves entity names using naive pluralization (`TypeName + "s"`). This works for most English entity names:
+
+| Type | Resolved Name | SP Name |
+|---|---|---|
+| `Student` | `Students` | `Get_Students` |
+| `Order` | `Orders` | `Save_Orders` |
+
+However, irregular plurals will not be correct (`Person` → `Persons`, `Status` → `Statuss`). Use `MapEntity<T>()` or `EntityNameResolver` for these cases:
+
+```csharp
+options.MapEntity<Person>("People");
+options.MapEntity<Status>("Statuses");
+
+// Or use a library like Humanizer for global resolution
+options.EntityNameResolver = type => type.Name.Pluralize();
+```
+
+---
+
+## Thread Safety
+
+`IForgeConnection` is **not thread-safe**. Each instance wraps a single ADO.NET connection and must not be shared across concurrent async operations.
+
+```csharp
+// WRONG — concurrent access to the same connection
+await Task.WhenAll(
+    forge.GetAsync<Student>(),
+    forge.GetAsync<Teacher>()   // may corrupt connection state
+);
+
+// CORRECT — sequential access
+var students = await forge.GetAsync<Student>();
+var teachers = await forge.GetAsync<Teacher>();
+```
+
+DapperForge registers `IForgeConnection` as **Scoped** by default, which means each HTTP request gets its own connection instance. This is the recommended pattern.
 
 ---
 
@@ -306,9 +356,10 @@ DapperForge was extracted from the data access layer of an enterprise education 
 src/DapperForge/
   Configuration/    ForgeOptions, DatabaseProvider, ConventionBuilder
   Conventions/      SP naming engine + entity name resolver
-  Execution/        SpExecutor, SpResult, multi-result, output params
+  Execution/        SpExecutor, ISpCommandBuilder, provider-specific builders
   Transaction/      Auto + manual transaction support
   Diagnostics/      Structured logging, QueryEvent, slow query detection
+  Validation/       ISpValidator, SqlServer/Postgres catalog queries
   Extensions/       DI registration + SP validation hosted service
 ```
 

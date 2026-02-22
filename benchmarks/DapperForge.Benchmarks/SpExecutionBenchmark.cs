@@ -39,7 +39,7 @@ public class SpExecutionBenchmark
         // Create a "stored procedure" via SQLite view (for fair comparison)
         _connection.Execute("CREATE VIEW vw_GetStudents AS SELECT * FROM Students");
 
-        _executor = new SpExecutor(_connection, new NullQueryDiagnostics());
+        _executor = new SpExecutor(_connection, new NullQueryDiagnostics(), new SqlServerCommandBuilder());
     }
 
     [GlobalCleanup]

@@ -1,6 +1,7 @@
 using DapperForge.Configuration;
 using DapperForge.Conventions;
 using DapperForge.Diagnostics;
+using DapperForge.Validation;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
@@ -49,31 +50,46 @@ public static class ServiceCollectionExtensions
 
         if (options.ValidateSpOnStartup)
         {
+            services.AddSingleton<ISpValidator>(_ => CreateValidator(options));
             services.AddHostedService<SpValidationHostedService>();
         }
 
         return services;
     }
+
+    private static ISpValidator CreateValidator(ForgeOptions options)
+    {
+        return options.Provider switch
+        {
+            DatabaseProvider.SqlServer => new SqlServerSpValidator(options.ConnectionString),
+            DatabaseProvider.PostgreSQL => new PostgresSpValidator(options.ConnectionString),
+            _ => throw new NotSupportedException($"SP validation is not supported for provider '{options.Provider}'.")
+        };
+    }
 }
 
 /// <summary>
-/// Background service that validates SP existence on startup.
+/// Background service that validates SP existence against the database on startup.
+/// Queries the database catalog (sys.objects for SQL Server, information_schema.routines for PostgreSQL)
+/// to verify that all expected stored procedures actually exist.
 /// </summary>
 internal class SpValidationHostedService : Microsoft.Extensions.Hosting.BackgroundService
 {
     private readonly SpNameResolver _resolver;
     private readonly ForgeOptions _options;
+    private readonly ISpValidator _validator;
     private readonly ILogger<SpValidationHostedService> _logger;
 
     public SpValidationHostedService(SpNameResolver resolver, ForgeOptions options,
-        ILogger<SpValidationHostedService> logger)
+        ISpValidator validator, ILogger<SpValidationHostedService> logger)
     {
         _resolver = resolver;
         _options = options;
+        _validator = validator;
         _logger = logger;
     }
 
-    protected override Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         var allExpected = _resolver.GetAllExpectedSpNames();
 
@@ -81,21 +97,59 @@ internal class SpValidationHostedService : Microsoft.Extensions.Hosting.Backgrou
         {
             _logger.LogInformation("[DapperForge] SP Validation: No entities registered. " +
                 "Use options.RegisterEntity<T>() to enable validation.");
-            return Task.CompletedTask;
+            return;
         }
 
         _logger.LogInformation("[DapperForge] SP Validation: Checking {Count} registered entities...",
             allExpected.Count);
 
+        var missing = new List<(string SpName, string EntityName)>();
+
         foreach (var (type, spNames) in allExpected)
         {
             foreach (var spName in spNames)
             {
-                _logger.LogInformation("[DapperForge] Expected SP: {SpName} (for entity '{EntityName}')",
-                    spName, type.Name);
+                try
+                {
+                    var exists = await _validator.ExistsAsync(spName, stoppingToken);
+
+                    if (exists)
+                    {
+                        _logger.LogInformation("[DapperForge] SP Validated: {SpName} (for entity '{EntityName}')",
+                            spName, type.Name);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("[DapperForge] SP Missing: {SpName} (for entity '{EntityName}')",
+                            spName, type.Name);
+                        missing.Add((spName, type.Name));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "[DapperForge] SP Validation failed for {SpName}: {Error}",
+                        spName, ex.Message);
+                    missing.Add((spName, type.Name));
+                }
             }
         }
 
-        return Task.CompletedTask;
+        if (missing.Count > 0)
+        {
+            var summary = string.Join(", ", missing.Select(m => m.SpName));
+            _logger.LogWarning("[DapperForge] SP Validation complete: {MissingCount} missing SPs: {Summary}",
+                missing.Count, summary);
+
+            if (_options.FailOnMissingSp)
+            {
+                throw new InvalidOperationException(
+                    $"DapperForge SP validation failed. {missing.Count} stored procedure(s) not found: {summary}. " +
+                    "Ensure all expected SPs exist in the database, or set FailOnMissingSp = false.");
+            }
+        }
+        else
+        {
+            _logger.LogInformation("[DapperForge] SP Validation complete: All stored procedures verified.");
+        }
     }
 }

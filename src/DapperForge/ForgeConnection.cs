@@ -13,6 +13,11 @@ namespace DapperForge;
 /// <summary>
 /// Default implementation of <see cref="IForgeConnection"/>.
 /// Manages database connections and provides convention-based stored procedure execution.
+/// <para>
+/// <b>Thread safety:</b> This class is NOT thread-safe. Each instance wraps a single
+/// <see cref="IDbConnection"/> and must not be shared across concurrent operations.
+/// Register as <c>Scoped</c> in DI (the default) and do not use with <c>Task.WhenAll</c>.
+/// </para>
 /// </summary>
 public class ForgeConnection : IForgeConnection
 {
@@ -32,7 +37,8 @@ public class ForgeConnection : IForgeConnection
         _options = options ?? throw new ArgumentNullException(nameof(options));
         ArgumentNullException.ThrowIfNull(diagnostics);
         _connection = CreateConnection(options);
-        _executor = new SpExecutor(_connection, diagnostics);
+        var commandBuilder = CreateCommandBuilder(options.Provider);
+        _executor = new SpExecutor(_connection, diagnostics, commandBuilder);
         _convention = options.Convention;
     }
 
@@ -219,6 +225,16 @@ public class ForgeConnection : IForgeConnection
             DatabaseProvider.SqlServer => new SqlConnection(options.ConnectionString),
             DatabaseProvider.PostgreSQL => new NpgsqlConnection(options.ConnectionString),
             _ => throw new NotSupportedException($"Database provider '{options.Provider}' is not supported.")
+        };
+    }
+
+    private static ISpCommandBuilder CreateCommandBuilder(DatabaseProvider provider)
+    {
+        return provider switch
+        {
+            DatabaseProvider.SqlServer => new SqlServerCommandBuilder(),
+            DatabaseProvider.PostgreSQL => new PostgresCommandBuilder(),
+            _ => throw new NotSupportedException($"Database provider '{provider}' is not supported.")
         };
     }
 

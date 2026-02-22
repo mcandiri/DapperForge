@@ -57,7 +57,7 @@ public class SpExecutionBenchmark
     }
 
     [Benchmark(Description = "DapperForge — SpExecutor.QueryAsync")]
-    public async Task<IEnumerable<Student>> Forge_SpExecutor_Query()
+    public async Task<List<Student>> Forge_SpExecutor_Query()
     {
         // SpExecutor uses CommandType.StoredProcedure which SQLite doesn't support,
         // so we benchmark the wrapper overhead by using a direct query command

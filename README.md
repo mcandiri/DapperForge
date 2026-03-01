@@ -38,7 +38,7 @@ return students;
 var students = await forge.GetAsync<Student>(new { IsActive = true });
 ```
 
-One line. Same result. Convention handles the rest.
+Same result. Convention handles the rest.
 
 ---
 
@@ -325,6 +325,33 @@ DapperForge registers `IForgeConnection` as **Scoped** by default, which means e
 
 ---
 
+## Trade-offs & When NOT to Use
+
+DapperForge trades explicitness for convention. This is the right trade-off when:
+- ✅ You have 50+ stored procedures following a naming convention
+- ✅ Your SP parameters map directly to C# model properties
+- ✅ You want to eliminate repetitive Dapper boilerplate
+
+This is NOT the right choice when:
+- ❌ Your SPs have inconsistent naming — convention-based discovery won't work
+- ❌ You need full control over every parameter mapping
+- ❌ You prefer explicit over implicit (and that's a valid preference)
+
+---
+
+## FAQ
+
+**What happens when naming conventions change?**
+DapperForge uses configurable naming strategies. Override `INamingConvention` to match your scheme. The default (`{Entity}_{Operation}`) covers the most common pattern.
+
+**How does parameter mapping handle edge cases?**
+Nullable types, enums, and nested objects are supported. For complex mappings, use `[MapTo("sp_param_name")]` attribute to override convention.
+
+**Transaction support?**
+Yes — `IUnitOfWork` wraps `IDbTransaction`. All operations within a unit of work share the same transaction and connection.
+
+---
+
 ## Performance
 
 DapperForge adds near-zero overhead on top of raw Dapper. Benchmarked with [BenchmarkDotNet](https://github.com/dotnet/BenchmarkDotNet) on SQLite in-memory to isolate framework cost from network I/O:
@@ -346,7 +373,7 @@ dotnet run -c Release --project benchmarks/DapperForge.Benchmarks
 
 ## Born From Production
 
-DapperForge was extracted from the data access layer of an enterprise education platform serving **1,900+ daily users** across **4+ years** of continuous production use. Every API was shaped by real-world needs — not hypothetical use cases.
+> Extracted from a codebase with 200+ stored procedures where every data access method was 15 lines of repetitive Dapper setup. DapperForge reduced each to a single method call while keeping full control over edge cases through attribute overrides.
 
 ---
 
